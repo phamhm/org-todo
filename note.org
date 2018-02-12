@@ -1,0 +1,72 @@
+* passport
+   - username + password comes into passport
+      - passport authenticates.
+        - if valid, save the user's cookie in the browser.
+*** passport + graphql
+**** decoupled approach:
+     - authentication is done with passport first, without graphql
+       involvement.
+     - once user is identified by passport, any subsequence request to
+       graphql will go through
+**** coupled approach:
+     - use mutation to authenticate the uesr.
+     - auth request/mutation go to graphql.
+       - graphql send the identification request to passport to auth.
+         - passport returns authentication state.
+**** Pros and cons
+|           | pros                     | cons                                   |
+| Coupled   | * use graphQl as intened | graphQl & passport don't work together |
+|           |                          |                                        |
+|           |                          |                                        |
+|           |                          |                                        |
+| Decoupled | *                        | have to split the app into auth with passport and the rest with graphQl |
+|           |                          |                                        |
+|           |                          |                                        |
+|           |                          |                                        |
+
+* auth graphql types & mutations
+
+| types | mutations |
+| User  | signup    |
+|       | login     |
+|       | logout    |
+
+** Mutations:
+   - where to put all the logics?
+     - want to ensure as little code as possible.
+     - have a delegation function for all muations
+*** Signup mutations:
+    signup return a promise. We return the promise so graphql know
+    when the Promise has been resolved.
+
+    resolve(parentValue, {email, password}, req){
+        return AuthService.signup({email, password, req});
+    }
+*** is user authenticated?
+    - in root_query_type.js, check if req.user exists.
+
+* client
+** schematic:
+   - users load header
+     - query for Auth state
+       - Yes: show button to logout
+       - No: show login/signup buttons
+** Cookies with graphql
+
+   - by default, graphql doesn't send along cookies
+   - must tell graphql to send along cookies along every single
+     request
+     - in the ApolloClient, configure the property "networkInterface"
+       - example:
+
+   const networkInterface = createNetworkInterface({
+   uri: '/graphql',
+   opts: {
+   credentials: 'same-origin'
+   }
+   });
+   const apolloClient = new ApolloClient({
+   dataIdFromObject: o => o.id,
+   networkInterface
+   });
+* how to check if a user is logged-in?
